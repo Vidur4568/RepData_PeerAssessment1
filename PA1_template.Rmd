@@ -11,7 +11,7 @@ library(dplyr)
 library(lattice)
 
 # Load the activity dataset
-activity <- read.csv("/Users/VidurBhardwaj/Documents/activity2.csv")
+activity <- read.csv("/Users/VidurBhardwaj/Documents/activity.csv")
 
 # Convert date column to Date type
 activity$date <- as.Date(activity$date)
