@@ -9,79 +9,68 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(lattice)
-```
-```{r}
 
-activity <- read.csv("C:/Users/VidurBhardwaj/Documents/activity.csv")
-activity <- read.csv("/Users/VidurBhardwaj/Documents/activity.csv")
+# Load the activity dataset
+activity <- read.csv("/Users/VidurBhardwaj/Documents/activity2.csv")
 
-```
-```{r}
-
+# Convert date column to Date type
+activity$date <- as.Date(activity$date)
+# Remove missing values and sum steps by day
 total_steps <- activity %>%
   filter(!is.na(steps)) %>%
   group_by(date) %>%
   summarise(total = sum(steps))
 
+# Histogram of total steps per day
 hist(total_steps$total, main = "Histogram of Total Steps per Day",
      xlab = "Steps", col = "skyblue", breaks = 20)
-
 mean_steps <- mean(total_steps$total)
 median_steps <- median(total_steps$total)
 
 mean_steps
 median_steps
-```
-```{r}
-
 avg_interval <- activity %>%
   group_by(interval) %>%
   summarise(mean_steps = mean(steps, na.rm = TRUE))
 
+# Time series plot
 plot(avg_interval$interval, avg_interval$mean_steps, type = "l",
      xlab = "5-minute Interval", ylab = "Average Steps",
      main = "Average Daily Activity Pattern", col = "blue")
-
 max_interval <- avg_interval[which.max(avg_interval$mean_steps), ]
 max_interval
-```
-```{r}
-
 missing_count <- sum(is.na(activity$steps))
 missing_count
-```
-```{r}
-
+# Create new dataset with imputed values
 activity_imputed <- activity
-activity_imputed$steps <- ifelse(is.na(activity_imputed$steps),
-                                ave(activity$steps, activity$interval, FUN = function(x) mean(x, na.rm = TRUE)),
-                                activity$steps)
+interval_means <- avg_interval
 
+# Impute NAs
+activity_imputed$steps[is.na(activity_imputed$steps)] <- interval_means$mean_steps[
+  match(activity_imputed$interval[is.na(activity_imputed$steps)], interval_means$interval)
+]
+# Total steps per day (after imputation)
 total_steps_imputed <- activity_imputed %>%
   group_by(date) %>%
   summarise(total = sum(steps))
 
-hist(total_steps_imputed$total, main = "Total Steps per Day (Imputed)",
+# Histogram
+hist(total_steps_imputed$total, main = "Histogram of Total Steps per Day (Imputed)",
      xlab = "Steps", col = "lightgreen", breaks = 20)
-
 mean_steps_imputed <- mean(total_steps_imputed$total)
 median_steps_imputed <- median(total_steps_imputed$total)
 
 mean_steps_imputed
 median_steps_imputed
-```
-```{r}
-
-activity_imputed$day_type <- ifelse(weekdays(activity_imputed$date) %in% c("Saturday", "Sunday"), 
-                                   "weekend", "weekday")
+activity_imputed$day_type <- ifelse(weekdays(activity_imputed$date) %in% c("Saturday", "Sunday"),
+                                    "weekend", "weekday")
 activity_imputed$day_type <- as.factor(activity_imputed$day_type)
-
 avg_by_day <- activity_imputed %>%
   group_by(interval, day_type) %>%
-  summarise(mean_steps = mean(steps))
+  summarise(mean_steps = mean(steps), .groups = "drop")
 
 xyplot(mean_steps ~ interval | day_type, data = avg_by_day,
        type = "l", layout = c(1, 2),
-       xlab = "Interval", ylab = "Average Steps",
+       xlab = "5-minute Interval", ylab = "Average Steps",
        main = "Activity Patterns: Weekday vs Weekend")
-```
+
